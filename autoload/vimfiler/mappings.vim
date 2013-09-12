@@ -195,7 +195,7 @@ function! vimfiler#mappings#define_default_mappings(context) "{{{
   nmap <buffer> k <Plug>(vimfiler_loop_cursor_up)
 
   " Toggle mark.
-  nmap <buffer> <C-l> <Plug>(vimfiler_redraw_screen)
+  " nmap <buffer> <C-l> <Plug>(vimfiler_redraw_screen)
   nmap <buffer> <Space> <Plug>(vimfiler_toggle_mark_current_line)
   nmap <buffer> <S-Space> <Plug>(vimfiler_toggle_mark_current_line_up)
   vmap <buffer> <Space> <Plug>(vimfiler_toggle_mark_selected_lines)
