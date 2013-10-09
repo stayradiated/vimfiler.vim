@@ -1,7 +1,7 @@
 "=============================================================================
 " FILE: init.vim
 " AUTHOR: Shougo Matsushita <Shougo.Matsu@gmail.com>
-" Last Modified: 04 Sep 2013.
+" Last Modified: 01 Oct 2013.
 " License: MIT license  {{{
 "     Permission is hereby granted, free of charge, to any person obtaining
 "     a copy of this software and associated documentation files (the
@@ -90,14 +90,19 @@ function! vimfiler#init#_initialize_context(context) "{{{
   return context
 endfunction"}}}
 function! vimfiler#init#_initialize_vimfiler_directory(directory, context) "{{{1
+  " Set current unite.
+  let b:vimfiler.unite = unite#get_current_unite()
+
   " Set current directory.
   let current = vimfiler#util#substitute_path_separator(a:directory)
   let b:vimfiler.current_dir = current
   if b:vimfiler.current_dir !~ '[:/]$'
     let b:vimfiler.current_dir .= '/'
   endif
+  let b:vimfiler.all_files = []
   let b:vimfiler.current_files = []
   let b:vimfiler.original_files = []
+  let b:vimfiler.all_files_len = 0
 
   let b:vimfiler.is_visible_ignore_files = 0
   let b:vimfiler.simple = a:context.simple
@@ -117,11 +122,13 @@ function! vimfiler#init#_initialize_vimfiler_directory(directory, context) "{{{1
   let b:vimfiler.prompt_linenr =
         \ (b:vimfiler.context.explorer) ?  0 :
         \ (b:vimfiler.context.status)   ?  2 : 1
+  let b:vimfiler.all_files_len = 0
   let b:vimfiler.status = ''
   let b:vimfiler.statusline =
         \ ((b:vimfiler.context.explorer) ?  '' : '*vimfiler* : ')
         \ . '%{vimfiler#get_status_string()}'
-        \ . "\ %=%{printf('%4d/%d',line('.'), line('$'))}"
+        \ . "\ %=%{printf('%4d/%d',line('.'),
+        \    b:vimfiler.prompt_linenr+b:vimfiler.all_files_len)}"
   call vimfiler#set_current_vimfiler(b:vimfiler)
 
   call vimfiler#default_settings()
@@ -156,6 +163,9 @@ function! vimfiler#init#_initialize_vimfiler_directory(directory, context) "{{{1
   endif
 endfunction"}}}
 function! vimfiler#init#_initialize_vimfiler_file(path, lines, dict) "{{{1
+  " Set current unite.
+  let b:vimfiler.unite = unite#get_current_unite()
+
   " Set current directory.
   let b:vimfiler.current_path = a:path
   let b:vimfiler.current_file = a:dict
@@ -425,6 +435,8 @@ function! vimfiler#init#_default_settings() "{{{
           \ call vimfiler#handler#_event_bufwin_enter(expand('<abuf>'))
     autocmd BufLeave,WinLeave,BufWinLeave <buffer>
           \ call vimfiler#handler#_event_bufwin_leave(expand('<abuf>'))
+    autocmd CursorMoved <buffer>
+          \ call vimfiler#handler#_event_cursor_moved()
     autocmd VimResized <buffer>
           \ call vimfiler#view#_redraw_all_vimfiler()
   augroup end"}}}
