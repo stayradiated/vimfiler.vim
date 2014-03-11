@@ -1,7 +1,7 @@
 "=============================================================================
 " FILE: helper.vim
 " AUTHOR: Shougo Matsushita <Shougo.Matsu@gmail.com>
-" Last Modified: 30 Sep 2013.
+" Last Modified: 11 Mar 2014.
 " License: MIT license  {{{
 "     Permission is hereby granted, free of charge, to any person obtaining
 "     a copy of this software and associated documentation files (the
@@ -41,7 +41,7 @@ function! vimfiler#helper#_get_directory_files(directory, ...) "{{{
     let path = b:vimfiler.source . ':' . path
   endif
   let args = vimfiler#parse_path(path)
-  let current_files = vimfiler#init#_initialize_candidates(
+  let current_files = vimfiler#init#_candidates(
         \ unite#get_vimfiler_candidates([args], context),
         \ b:vimfiler.source)
 
@@ -138,7 +138,7 @@ function! vimfiler#helper#_get_cd_path(dir) "{{{
         \ || (vimfiler#util#is_windows() && dir =~ '^//')
         \ || (!vimfiler#util#is_windows() && dir =~ '^/')
     " Network drive or absolute path.
-  else
+  elseif b:vimfiler.source ==# 'file'
     " Relative path.
     let dir = simplify(current_dir . dir)
   endif
@@ -225,6 +225,23 @@ function! vimfiler#helper#_get_file_directory(...) "{{{
   endif
 
   return directory
+endfunction"}}}
+
+
+function! vimfiler#helper#_get_buffer_directory(bufnr) "{{{
+  let filetype = getbufvar(a:bufnr, '&filetype')
+  if filetype ==# 'vimfiler'
+    let dir = getbufvar(a:bufnr, 'vimfiler').current_dir
+  elseif filetype ==# 'vimshell'
+    let dir = getbufvar(a:bufnr, 'vimshell').current_dir
+  elseif filetype ==# 'vinarise'
+    let dir = getbufvar(a:bufnr, 'vinarise').current_dir
+  else
+    let path = vimfiler#util#substitute_path_separator(bufname(a:bufnr))
+    let dir = vimfiler#util#path2directory(path)
+  endif
+
+  return dir
 endfunction"}}}
 
 function! vimfiler#helper#_set_cursor()

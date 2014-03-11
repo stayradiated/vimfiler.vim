@@ -1,7 +1,7 @@
 "=============================================================================
 " FILE: handler.vim
 " AUTHOR: Shougo Matsushita <Shougo.Matsu@gmail.com>
-" Last Modified: 30 Sep 2013.
+" Last Modified: 10 Mar 2014.
 " License: MIT license  {{{
 "     Permission is hereby granted, free of charge, to any person obtaining
 "     a copy of this software and associated documentation files (the
@@ -33,7 +33,8 @@ function! vimfiler#handler#_event_handler(event_name, ...)  "{{{1
         \ vimfiler#util#substitute_path_separator(expand('<afile>')))
 
   if filereadable(path)
-    call vimfiler#print_error('You cannot open the file contained ":"(see FAQ).')
+    call vimfiler#util#print_error(
+          \ '[vimfiler] You cannot open the file not contained ":"(see FAQ).')
     return
   endif
 
@@ -44,14 +45,17 @@ function! vimfiler#handler#_event_handler(event_name, ...)  "{{{1
   return s:on_{a:event_name}(source_name, source_args, context)
 endfunction
 
-" Event Handlers.
-
 function! s:on_BufReadCmd(source_name, source_args, context)  "{{{1
   " Check path.
   let ret = unite#vimfiler_check_filetype(
         \ [insert(a:source_args, a:source_name)])
   if empty(ret)
-    " File not found.
+    if !empty(unite#loaded_sources_list()) && a:source_name !=# 'file'
+      " File not found.
+      call vimfiler#util#print_error(
+            \ printf('[vimfiler] Can''t open "%s".', join(a:source_args, ':')))
+    endif
+
     return
   endif
   let [type, info] = ret
@@ -63,12 +67,12 @@ function! s:on_BufReadCmd(source_name, source_args, context)  "{{{1
   let b:vimfiler.context = a:context
   let b:vimfiler.bufnr = bufnr('%')
   if type ==# 'directory'
-    call vimfiler#init#_initialize_vimfiler_directory(info, a:context)
+    call vimfiler#init#_vimfiler_directory(info, a:context)
   elseif type ==# 'file'
-    call vimfiler#init#_initialize_vimfiler_file(
+    call vimfiler#init#_vimfiler_file(
           \ a:source_args, info[0], info[1])
   else
-    call vimfiler#print_error('Unknown filetype.')
+    call vimfiler#util#print_error('[vimfiler] Unknown filetype.')
   endif
 
   if bufnr('%') != bufnr
@@ -90,22 +94,21 @@ function! s:on_FileAppendCmd(source_name, source_args, context)  "{{{1
   return s:write(a:source_name, a:source_args, line("'["), line("']"), 'FileAppendCmd')
 endfunction"}}}
 
-
 function! s:on_FileReadCmd(source_name, source_args, context)  "{{{1
   " Check path.
   let ret = unite#vimfiler_check_filetype(
         \ [insert(a:source_args, a:source_name)])
   if empty(ret)
     " File not found.
-    call vimfiler#print_error(
-          \ printf('Can''t open "%s".', join(a:source_args, ':')))
+    call vimfiler#util#print_error(
+          \ printf('[vimfiler] Can''t open "%s".', join(a:source_args, ':')))
     return
   endif
   let [type, info] = ret
 
   if type !=# 'file'
-    call vimfiler#print_error(
-          \ printf('"%s" is not a file.', join(a:source_args, ':')))
+    call vimfiler#util#print_error(
+          \ printf('[vimfiler] "%s" is not a file.', join(a:source_args, ':')))
     return
   endif
 
@@ -134,7 +137,7 @@ function! s:write(source_name, source_args, line1, line2, event_name)  "{{{
           \ 'vimfiler__eventname' : a:event_name,
           \ })
   catch
-    call vimfiler#print_error(v:exception . ' ' . v:throwpoint)
+    call vimfiler#util#print_error(v:exception . ' ' . v:throwpoint)
     setlocal modified
   endtry
 endfunction"}}}
@@ -150,7 +153,9 @@ function! vimfiler#handler#_event_bufwin_enter(bufnr) "{{{
   endif
 
   try
-    if !exists('b:vimfiler')
+    if !exists('b:vimfiler') ||
+          \ len(filter(range(1, winnr('$')),
+          \    'winbufnr(v:val) == a:bufnr')) > 1
       return
     endif
 
@@ -180,8 +185,6 @@ function! vimfiler#handler#_event_bufwin_enter(bufnr) "{{{
         setlocal winfixheight
       endif
     endif
-
-    let context.vimfiler__prev_winnr = prev_winnr
 
     let winwidth = (winwidth(0)+1)/2*2
     if exists('vimfiler.winwidth')

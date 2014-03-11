@@ -1,7 +1,7 @@
 "=============================================================================
 " FILE: exrename.vim
 " AUTHOR: Shougo Matsushita <Shougo.Matsu@gmail.com>
-" Last Modified: 17 Sep 2013.
+" Last Modified: 24 Dec 2013.
 " License: MIT license  {{{
 "     Permission is hereby granted, free of charge, to any person obtaining
 "     a copy of this software and associated documentation files (the
@@ -41,9 +41,10 @@ function! vimfiler#exrename#create_buffer(files) "{{{
 
   if b:exrename.source ==# 'file'
     " Initialize load.
-    call unite#kinds#openable#define()
+    call unite#kinds#cdable#define()
 
-    execute g:unite_kind_openable_lcd_command '`=b:exrename.current_dir`'
+    execute g:unite_kind_cdable_lcd_command
+          \ fnameescape(b:exrename.current_dir)
   endif
 
   nnoremap <buffer><silent> q    :<C-u>call <SID>exit()<CR>
@@ -107,8 +108,14 @@ function! s:do_rename() "{{{
 
   " Rename files.
   let linenr = 1
-  while linenr <= line('$')
+  let max = line('$')
+  while linenr <= max
     let filename = b:exrename.current_filenames[linenr - 1]
+
+    redraw
+    echo printf('(%'.len(max).'d/%d): %s -> %s',
+          \ linenr, max, filename, getline(linenr))
+
     if filename !=# getline(linenr)
       let file = b:exrename.current_files[linenr - 1]
       let new_file = vimfiler#util#expand(getline(linenr))
@@ -124,6 +131,9 @@ function! s:do_rename() "{{{
 
     let linenr += 1
   endwhile
+
+  redraw
+  echo 'Rename done!'
 
   setlocal nomodified
   call s:exit()
